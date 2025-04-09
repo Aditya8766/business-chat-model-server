@@ -32,28 +32,39 @@ function calculateSecretHash(username, clientId, clientSecret) {
   return hmac.digest("base64");
 }
 
-// ✅ Google Sign-In
+// ✅ Google Sign-In (No Cognito)
 app.post("/google-signin", async (req, res) => {
   const { token } = req.body;
 
-  if (!token) return res.status(400).json({ error: "No token provided" });
+  if (!token) {
+    return res.status(400).json({ error: "No token provided" });
+  }
 
   try {
     const ticket = await googleClient.verifyIdToken({
       idToken: token,
-      audience: googleClientId,
+      audience: googleClientId, // must match your client ID
     });
 
     const payload = ticket.getPayload();
-    console.log("✅ Google payload:", payload);
 
-    // Here you could match this user with your DB or create a Cognito user
-    return res.status(200).json({ message: "Google sign-in successful", user: payload });
+    const user = {
+      email: payload.email,
+      name: payload.name,
+      picture: payload.picture,
+      email_verified: payload.email_verified,
+    };
+
+    return res.status(200).json({
+      message: "Google sign-in successful",
+      user,
+    });
   } catch (error) {
     console.error("❌ Google sign-in error:", error);
     return res.status(401).json({ error: "Google sign-in verification failed" });
   }
 });
+
 
 // ✅ Sign-Up
 app.post("/signup", async (req, res) => {
